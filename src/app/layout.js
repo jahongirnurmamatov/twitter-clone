@@ -18,10 +18,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <div className="flex justify-between max-w-6xl mx-auto">
-          <div className="hidden sm:inline border-r h-screen">
+          <div className=" hidden sm:inline border-r h-screen">
             <Sidebar/>
           </div>
-          <div>
+          <div className="max-w-2xl flex-1">
             {children}
           </div>
             <div className="lg:flex-col p-3 h-screen border-l hidden lg:flex w-[24rem]">
