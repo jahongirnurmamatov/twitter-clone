@@ -4,13 +4,17 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { HiOutlinePhotograph } from "react-icons/hi";
-
+import {addDoc, collection, getFirestore, serverTimestamp} from 'firebase/firestore'
 export default function Input() {
   const { data: session } = useSession();
   const imageRef = useRef(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imgLoading, setImgLoading] = useState(false);
+  const [postText,setPostText]=useState('');
+  const [postLoading,setPostLoading]=useState(false);
+  const db = getFirestore(app);
+
 
   const addImageToPost = (e) => {
     const file = e.target.files[0];
@@ -27,6 +31,21 @@ export default function Input() {
   }, [selectedFile]);
 
   if (!session) return null;
+  const handleSumbit = async ()=>{
+    setPostLoading(true);
+    const docRef = await addDoc(collection(db,'posts'),{
+        uid: session.user.uid,
+        username: session.user.username,
+        postText,
+        postImg:imageFileUrl,
+        profileImg:session.user.image,
+        timestamp: serverTimestamp(),
+    });
+    setPostLoading(false);
+    setPostText('');
+    setImageFileUrl(null);
+    setSelectedFile(null);
+  }
 
   const uploadImageToStorage = () => {
     setImgLoading(true);
@@ -34,6 +53,7 @@ export default function Input() {
     const fileName = new Date().getTime() + '-' + selectedFile.name;
     const storageRef = ref(storage, fileName);
     const uploadTask = uploadBytesResumable(storageRef, selectedFile);
+   
 
     uploadTask.on(
       'state_changed',
@@ -69,9 +89,13 @@ export default function Input() {
           type="text"
           placeholder="What's happening?"
           rows={2}
+          value={postText}
+          onChange={(e)=>setPostText(e.target.value)}
         />
         {selectedFile && (
-          <img src={imageFileUrl} alt="image" className="w-full max-h-[250px] object-cover cursor-pointer" />
+          <img 
+          src={imageFileUrl} alt="image" 
+          className={`w-full max-h-[250px] object-cover cursor-pointer ${imgLoading ? 'animate-pulse':''}`} />
         )}
         <div className="flex justify-between items-center pt-2.5">
           <HiOutlinePhotograph
@@ -79,7 +103,10 @@ export default function Input() {
             className="w-10 h-10 p-2 text-sky-500 hover:bg-sky-100 rounded-full cursor-pointer"
           />
           <input hidden onChange={addImageToPost} accept="image/*" type="file" ref={imageRef} />
-          <button className="bg-blue-400 text-white px-4 py-1.5 rounded-full shadow-md font-bold hover:brightness-95 disabled:opacity-50">
+          <button 
+          disabled={postText.trim()==='' || postLoading|| imgLoading} 
+          onClick={handleSumbit}
+          className="bg-blue-400 text-white px-4 py-1.5 rounded-full shadow-md font-bold hover:brightness-95 disabled:opacity-50">
             Post
           </button>
         </div>
