@@ -35,6 +35,7 @@ export default function Input() {
     setPostLoading(true);
     const docRef = await addDoc(collection(db,'posts'),{
         uid: session.user.uid,
+        name:session.user.name,
         username: session.user.username,
         postText,
         postImg:imageFileUrl,
@@ -45,6 +46,7 @@ export default function Input() {
     setPostText('');
     setImageFileUrl(null);
     setSelectedFile(null);
+    location.reload();
   }
 
   const uploadImageToStorage = () => {
