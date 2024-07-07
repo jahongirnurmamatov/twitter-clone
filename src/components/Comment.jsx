@@ -1,22 +1,71 @@
 'use client'
 
-import { HiDotsHorizontal } from "react-icons/hi"
+import { app } from "@/firabase";
+import { collection, deleteDoc, doc, getFirestore, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect, useState } from "react"
+import { HiDotsHorizontal, HiHeart, HiOutlineHeart } from "react-icons/hi"
 
-export default function Comment({comment, id}) {
+export default function Comment({ comment, commentId, originalPostId }) {
+  const [isLiked,setIsliked]=useState(false);
+  const [likes,setLikes]=useState([]);
+  const db = getFirestore(app);
+  const {data:session} = useSession();
+  useEffect(()=>{
+    onSnapshot(
+      collection(db,'posts',originalPostId, 'comments', commentId, 'likes'),
+      (snapshot)=>{
+        setLikes(snapshot.docs);
+      }
+    )
+  },[db]);
+  useEffect(()=>{
+    setIsliked(
+      likes.findIndex((like)=>like.id===session?.user?.uid)!==-1
+    );
+  },[likes])
 
+  console.log(isLiked)
+
+  const likePost = async()=>{
+    if(session){
+      if(isLiked){
+        await deleteDoc(doc(db,'posts',originalPostId,'comments',commentId, 'likes', session?.user.uid));
+      }else{
+        await setDoc(doc(db,'posts',originalPostId,'comments',commentId, 'likes', session?.user.uid),{
+          username:session.user.name,
+          timestamp:serverTimestamp(),
+        });
+      }
+    }else{
+      signIn();
+    }
+  }
   return (
     <div className='flex p-3 border-b border-gray-200 hover:bg-gray-50 pl-10'>
-        <img src={comment?.userImg} alt="user-img" className='h-9 w-9 rounded-full mr-4'/>
-        <div className='flex-1'>
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 whitespace-nowrap">
-                    <h4 className='font-bold text-sm truncate'>{comment?.name}</h4>
-                    <span className='text-xs truncate'>@{comment.username}</span>
-                </div>
-                <HiDotsHorizontal />
-            </div>
-                <p className='text-gray-800 text-xs my-3'>{comment?.comment}</p>
+      <img src={comment?.userImg} alt="user-img" className='h-9 w-9 rounded-full mr-4' />
+      <div className='flex-1'>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1 whitespace-nowrap">
+            <h4 className='font-bold text-sm truncate'>{comment?.name}</h4>
+            <span className='text-xs truncate'>@{comment.username}</span>
+          </div>
+          <HiDotsHorizontal />
         </div>
+        <p className='text-gray-800 text-xs my-3'>{comment?.comment}</p>
+        <div className="flex items-center gap-1">
+          {
+            isLiked ? (<HiHeart onClick={likePost}
+              className="h-7 w-7 cursor-pointer rounded-full transition text-red-600 duration-200 ease-in-out hover:text-red-500 hover:bg-red-100" />) :
+              (
+                <HiOutlineHeart onClick={likePost}
+                  className="h-7 w-7 cursor-pointer rounded-full transition duration-200 ease-in-out hover:text-red-500 hover:bg-red-100" />
+              )
+          }
+          {likes.length > 0 && <span className={`text-xs ${isLiked && 'text-red-600'}`}>{likes.length}</span>}
+        </div>
+
+      </div>
     </div>
   )
 }
