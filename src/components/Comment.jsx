@@ -25,8 +25,6 @@ export default function Comment({ comment, commentId, originalPostId }) {
     );
   },[likes])
 
-  console.log(isLiked)
-
   const likePost = async()=>{
     if(session){
       if(isLiked){
